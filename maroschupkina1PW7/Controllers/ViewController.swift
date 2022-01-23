@@ -10,6 +10,8 @@ import CoreLocation
 import MapKit
 
 class ViewController: UIViewController {
+    var coordinates: [CLLocationCoordinate2D] = []
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -54,7 +56,7 @@ class ViewController: UIViewController {
         control.placeholder = "From"
         control.layer.cornerRadius = 20
         control.clipsToBounds = false
-        control.font = UIFont.systemFont(ofSize: 15)
+        control.font = UIFont.boldSystemFont(ofSize: 15)
         control.borderStyle = UITextField.BorderStyle.roundedRect
         control.autocorrectionType = UITextAutocorrectionType.yes
         control.keyboardType = UIKeyboardType.default
@@ -73,7 +75,7 @@ class ViewController: UIViewController {
         control.placeholder = "To"
         control.layer.cornerRadius = 20
         control.clipsToBounds = false
-        control.font = UIFont.systemFont(ofSize: 15)
+        control.font = UIFont.boldSystemFont(ofSize: 15)
         control.borderStyle = UITextField.BorderStyle.roundedRect
         control.autocorrectionType = UITextAutocorrectionType.yes
         control.keyboardType = UIKeyboardType.default
@@ -102,10 +104,97 @@ class ViewController: UIViewController {
         goButton.isEnabled = false
         startLocation.text = ""
         finishLocation.text = ""
+        coordinates.removeAll()
     }
     
     @objc func goButtonWasPressed(_ sender: UIButton) {
+        
+        coordinates.removeAll()
+        let allAnnotations = map.annotations
+        map.removeAnnotations(allAnnotations)
+        let allOverlays = map.overlays
+        map.removeOverlays(allOverlays)
+        
         sender.isEnabled = false
+        guard
+            let first = startLocation.text,
+            let second = finishLocation.text,
+            first != second
+        else {
+            return
+        }
+        let group = DispatchGroup()
+        group.enter()
+        getCoordinateFrom(address: first, completion: { [weak
+                                                            self] coords,_ in
+            if let coords = coords {
+                self?.coordinates.append(coords)
+            }
+            group.leave()
+        })
+        group.enter()
+        getCoordinateFrom(address: second, completion: { [weak
+                                                            self] coords,_ in
+            if let coords = coords {
+                self?.coordinates.append(coords)
+            }
+            group.leave()
+        })
+        group.notify(queue: .main) {
+            DispatchQueue.main.async { [weak self] in
+            }
+            self.buildPath()
+            self.map.delegate = self
+        }
+    }
+    private func buildPath(){
+        let startMark = MKPlacemark(coordinate: coordinates[0])
+        let finishMark = MKPlacemark(coordinate: coordinates[1])
+        
+        let startItem = MKMapItem(placemark: startMark)
+        let finishItem = MKMapItem(placemark: finishMark)
+        
+        let startAnotation = MKPointAnnotation()
+        let finishAnotation = MKPointAnnotation()
+        
+        startAnotation.title = startLocation.text
+        startAnotation.coordinate = startMark.coordinate
+        
+        finishAnotation.title = finishLocation.text
+        finishAnotation.coordinate = finishMark.coordinate
+        
+        map.showAnnotations([startAnotation,finishAnotation], animated: true)
+        
+        let directionRequest = MKDirections.Request()
+        directionRequest.source = startItem
+        directionRequest.destination = finishItem
+        
+        let direction = MKDirections(request: directionRequest)
+        direction.calculate{(response,error) in
+            guard let response = response else{
+                if let error = error {
+                    print("ERROR \(error.localizedDescription)")
+                }
+                return
+            }
+            let route = response.routes[0]
+            self.map.addOverlay(route.polyline, level: MKOverlayLevel.aboveRoads)
+            
+            let rect = route.polyline.boundingMapRect
+            self.map.setRegion(MKCoordinateRegion(rect), animated: true)
+        }
+        
+    }
+    
+    
+    
+    private func getCoordinateFrom(address: String, completion:
+                                    @escaping(_ coordinate: CLLocationCoordinate2D?, _ error: Error?)
+                                    -> () ) {
+        DispatchQueue.global(qos: .background).async {
+            CLGeocoder().geocodeAddressString(address)
+                { completion($0?.first?.location?.coordinate, $1) }
+        }
     }
     
     private func configureUI() {
@@ -178,6 +267,17 @@ extension ViewController {
         let tap = UITapGestureRecognizer(target: self.view, action: #selector(self.view.endEditing(_:)))
         tap.cancelsTouchesInView = false
         return tap
+    }
+}
+
+extension ViewController : MKMapViewDelegate{
+    func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+        
+        let renderer = MKPolylineRenderer(overlay: overlay)
+        renderer.strokeColor = .red
+        renderer.lineWidth = 5.0
+        
+        return renderer
     }
 }
 
