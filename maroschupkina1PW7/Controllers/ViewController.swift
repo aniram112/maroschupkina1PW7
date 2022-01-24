@@ -8,9 +8,11 @@
 import UIKit
 import CoreLocation
 import MapKit
+import YandexMapsMobile
 
 class ViewController: UIViewController {
     var coordinates: [CLLocationCoordinate2D] = []
+    var drivingSession: YMKDrivingSession?
     
     
     override func viewDidLoad() {
@@ -21,7 +23,7 @@ class ViewController: UIViewController {
         // Do any additional setup after loading the view.
     }
     
-    private let map: MKMapView = {
+    /*private let map: MKMapView = {
         let mapView = MKMapView()
         mapView.layer.masksToBounds = true
         mapView.layer.cornerRadius = 5
@@ -33,7 +35,15 @@ class ViewController: UIViewController {
         mapView.showsBuildings = true
         mapView.showsUserLocation = true
         return mapView
-    }()
+    }()*/
+    
+    private let map: YMKMapView = {
+            let map = YMKMapView()
+            map.clearsContextBeforeDrawing = true
+            map.translatesAutoresizingMaskIntoConstraints = false
+            return map
+        }()
+ 
     
     private let buttonsStack: UIStackView = {
         let stack = UIStackView()
@@ -51,8 +61,7 @@ class ViewController: UIViewController {
     
     let startLocation: UITextField = {
         let control = UITextField()
-        control.backgroundColor = .lightGray.withAlphaComponent(0.4)
-        control.textColor = UIColor.black
+        control.backgroundColor = .darkGray.withAlphaComponent(0.5)
         control.placeholder = "From"
         control.layer.cornerRadius = 20
         control.clipsToBounds = false
@@ -70,13 +79,13 @@ class ViewController: UIViewController {
     
     let finishLocation: UITextField = {
         let control = UITextField()
-        control.backgroundColor = .lightGray.withAlphaComponent(0.4)
-        control.textColor = UIColor.black
+        control.backgroundColor = .darkGray.withAlphaComponent(0.5)
         control.placeholder = "To"
         control.layer.cornerRadius = 20
         control.clipsToBounds = false
         control.font = UIFont.boldSystemFont(ofSize: 15)
         control.borderStyle = UITextField.BorderStyle.roundedRect
+        //control.layer.borderColor = UIColor.darkGray.withAlphaComponent(0.5).cgColor
         control.autocorrectionType = UITextAutocorrectionType.yes
         control.keyboardType = UIKeyboardType.default
         control.returnKeyType = UIReturnKeyType.done
@@ -88,13 +97,13 @@ class ViewController: UIViewController {
     }()
     
     let goButton : RoundButtonView = {
-        let goButton = RoundButtonView(color: .lightGray.withAlphaComponent(0.4), text: "Go")
+        let goButton = RoundButtonView(color: .gray.withAlphaComponent(0.2), text: "Go")
         goButton.addTarget(self, action: #selector(goButtonWasPressed), for: .touchDown)
         return goButton
     }()
     
     let clearButton : RoundButtonView = {
-        let clearButton = RoundButtonView(color: .lightGray.withAlphaComponent(0.4), text: "Clear")
+        let clearButton = RoundButtonView(color: .gray.withAlphaComponent(0.2), text: "Clear")
         clearButton.addTarget(self, action: #selector(clearButtonWasPressed), for: .touchDown)
         return clearButton
     }()
@@ -105,15 +114,14 @@ class ViewController: UIViewController {
         startLocation.text = ""
         finishLocation.text = ""
         coordinates.removeAll()
+        map.mapWindow.map.mapObjects.clear()
     }
     
     @objc func goButtonWasPressed(_ sender: UIButton) {
         
         coordinates.removeAll()
-        let allAnnotations = map.annotations
-        map.removeAnnotations(allAnnotations)
-        let allOverlays = map.overlays
-        map.removeOverlays(allOverlays)
+        map.mapWindow.map.mapObjects.clear()
+    
         
         sender.isEnabled = false
         guard
@@ -144,49 +152,58 @@ class ViewController: UIViewController {
             DispatchQueue.main.async { [weak self] in
             }
             self.buildPath()
-            self.map.delegate = self
+            //self.map.delegate = self
         }
     }
     private func buildPath(){
-        let startMark = MKPlacemark(coordinate: coordinates[0])
-        let finishMark = MKPlacemark(coordinate: coordinates[1])
+        //let startMark = MKPlacemark(coordinate: coordinates[0])
+        let startMark = YMKPoint(latitude: coordinates[0].latitude, longitude: coordinates[0].longitude)
         
-        let startItem = MKMapItem(placemark: startMark)
-        let finishItem = MKMapItem(placemark: finishMark)
+        let finishMark = YMKPoint(latitude: coordinates[1].latitude, longitude: coordinates[1].longitude)
         
-        let startAnotation = MKPointAnnotation()
-        let finishAnotation = MKPointAnnotation()
+        let requestPoints : [YMKRequestPoint] = [
+            YMKRequestPoint(point: startMark, type: .waypoint, pointContext: nil),
+            YMKRequestPoint(point: finishMark, type: .waypoint, pointContext: nil),
+            ]
         
-        startAnotation.title = startLocation.text
-        startAnotation.coordinate = startMark.coordinate
-        
-        finishAnotation.title = finishLocation.text
-        finishAnotation.coordinate = finishMark.coordinate
-        
-        map.showAnnotations([startAnotation,finishAnotation], animated: true)
-        
-        let directionRequest = MKDirections.Request()
-        directionRequest.source = startItem
-        directionRequest.destination = finishItem
-        
-        let direction = MKDirections(request: directionRequest)
-        direction.calculate{(response,error) in
-            guard let response = response else{
-                if let error = error {
-                    print("ERROR \(error.localizedDescription)")
-                }
-                return
+        let responseHandler = {(routesResponse: [YMKDrivingRoute]?, error: Error?) -> Void in
+            if let routes = routesResponse {
+                self.onRoutesReceived(routes)
+            } else {
+                self.onRoutesError(error!)
             }
-            let route = response.routes[0]
-            self.map.addOverlay(route.polyline, level: MKOverlayLevel.aboveRoads)
-            
-            let rect = route.polyline.boundingMapRect
-            self.map.setRegion(MKCoordinateRegion(rect), animated: true)
         }
+        
+        let drivingRouter = YMKDirections.sharedInstance().createDrivingRouter()
+        drivingSession = drivingRouter.requestRoutes(
+            with: requestPoints,
+            drivingOptions: YMKDrivingDrivingOptions(),
+            vehicleOptions: YMKDrivingVehicleOptions(),
+            routeHandler: responseHandler)
         
     }
     
+    func onRoutesReceived(_ routes: [YMKDrivingRoute]) {
+        let mapObjects = map.mapWindow.map.mapObjects
+        for route in routes {
+            mapObjects.addPolyline(with: route.geometry)
+        }
+    }
     
+    func onRoutesError(_ error: Error) {
+        let routingError = (error as NSError).userInfo[YRTUnderlyingErrorKey] as! YRTError
+        var errorMessage = "Unknown error"
+        if routingError.isKind(of: YRTNetworkError.self) {
+            errorMessage = "Network error"
+        } else if routingError.isKind(of: YRTRemoteError.self) {
+            errorMessage = "Remote server error"
+        }
+        
+        let alert = UIAlertController(title: "Error", message: errorMessage, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+        
+        present(alert, animated: true, completion: nil)
+    }
     
     private func getCoordinateFrom(address: String, completion:
                                     @escaping(_ coordinate: CLLocationCoordinate2D?, _ error: Error?)
@@ -203,6 +220,10 @@ class ViewController: UIViewController {
         map.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
         map.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
         map.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
+        
+        
+        goButton.addBlurEffect(style: .systemUltraThinMaterial, cornerRadius: 20, padding: 0)
+        clearButton.addBlurEffect(style: .systemUltraThinMaterial, cornerRadius: 20, padding: 0)
         
         buttonsStack.addArrangedSubview(goButton)
         buttonsStack.addArrangedSubview(clearButton)
