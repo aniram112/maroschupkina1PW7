@@ -13,6 +13,7 @@ import YandexMapsMobile
 class ViewController: UIViewController {
     var coordinates: [CLLocationCoordinate2D] = []
     var drivingSession: YMKDrivingSession?
+    var length = 0.0;
     
     
     override func viewDidLoad() {
@@ -25,26 +26,26 @@ class ViewController: UIViewController {
     }
     
     /*private let map: MKMapView = {
-        let mapView = MKMapView()
-        mapView.layer.masksToBounds = true
-        mapView.layer.cornerRadius = 5
-        mapView.clipsToBounds = false
-        mapView.translatesAutoresizingMaskIntoConstraints = false
-        mapView.showsScale = true
-        mapView.showsCompass = true
-        mapView.showsBuildings = true
-        mapView.showsBuildings = true
-        mapView.showsUserLocation = true
-        return mapView
-    }()*/
+     let mapView = MKMapView()
+     mapView.layer.masksToBounds = true
+     mapView.layer.cornerRadius = 5
+     mapView.clipsToBounds = false
+     mapView.translatesAutoresizingMaskIntoConstraints = false
+     mapView.showsScale = true
+     mapView.showsCompass = true
+     mapView.showsBuildings = true
+     mapView.showsBuildings = true
+     mapView.showsUserLocation = true
+     return mapView
+     }()*/
     
     private let map: YMKMapView = {
-            let map = YMKMapView()
-            map.clearsContextBeforeDrawing = true
-            map.translatesAutoresizingMaskIntoConstraints = false
-            return map
-        }()
- 
+        let map = YMKMapView()
+        map.clearsContextBeforeDrawing = true
+        map.translatesAutoresizingMaskIntoConstraints = false
+        return map
+    }()
+    
     
     private let buttonsStack: UIStackView = {
         let stack = UIStackView()
@@ -109,6 +110,11 @@ class ViewController: UIViewController {
         return clearButton
     }()
     
+    let distanceView : RoundButtonView = {
+        let distanceView = RoundButtonView(color: .gray.withAlphaComponent(0.2), text: "0")
+        return distanceView
+    }()
+    
     @objc func clearButtonWasPressed(_ sender: UIButton) {
         sender.isEnabled = false
         goButton.isEnabled = false
@@ -122,7 +128,7 @@ class ViewController: UIViewController {
         
         coordinates.removeAll()
         map.mapWindow.map.mapObjects.clear()
-    
+        
         
         sender.isEnabled = false
         guard
@@ -157,21 +163,22 @@ class ViewController: UIViewController {
         }
     }
     private func buildPath(){
+        
         //let startMark = MKPlacemark(coordinate: coordinates[0])
         let startMark = YMKPoint(latitude: coordinates[0].latitude, longitude: coordinates[0].longitude)
         
         let finishMark = YMKPoint(latitude: coordinates[1].latitude, longitude: coordinates[1].longitude)
         
         map.mapWindow.map.move(with: YMKCameraPosition(
-            target: startMark,
-            zoom: 6,
-            azimuth: 0,
-            tilt: 0))
+                                target: startMark,
+                                zoom: 6,
+                                azimuth: 0,
+                                tilt: 0))
         
         let requestPoints : [YMKRequestPoint] = [
             YMKRequestPoint(point: startMark, type: .waypoint, pointContext: nil),
             YMKRequestPoint(point: finishMark, type: .waypoint, pointContext: nil),
-            ]
+        ]
         
         let responseHandler = {(routesResponse: [YMKDrivingRoute]?, error: Error?) -> Void in
             if let routes = routesResponse {
@@ -180,7 +187,7 @@ class ViewController: UIViewController {
                 self.onRoutesError(error!)
             }
         }
-
+        
         
         let drivingRouter = YMKDirections.sharedInstance().createDrivingRouter()
         drivingSession = drivingRouter.requestRoutes(
@@ -189,16 +196,22 @@ class ViewController: UIViewController {
             vehicleOptions: YMKDrivingVehicleOptions(),
             routeHandler: responseHandler)
         
+        
+        distanceView.setTitle(String(Int(length)), for: UIControl.State.normal)
     }
     
     func onRoutesReceived(_ routes: [YMKDrivingRoute]) {
         let mapObjects = map.mapWindow.map.mapObjects
-        // показывает все маршруты, а надо бы один
-        //for route in routes {
+        length = 0
+        for section in routes[0].sections{
+            length += section.metadata.weight.distance.value
+        }
+        
+        distanceView.setTitle(String(Int(length)), for: UIControl.State.normal)
+        
         let routePolyline = mapObjects.addColoredPolyline(with: routes[0].geometry);
         YMKRouteHelper.updatePolyline(withPolyline: routePolyline, route: routes[0], style: YMKRouteHelper.createDefaultJamStyle())
-        //mapObjects.
-        //}
+        
     }
     
     func onRoutesError(_ error: Error) {
@@ -234,9 +247,12 @@ class ViewController: UIViewController {
         
         
         goButton.addBlurEffect(style: .systemUltraThinMaterial, cornerRadius: 20, padding: 0)
+        distanceView.addBlurEffect(style: .systemUltraThinMaterial, cornerRadius: 20, padding: 0)
         clearButton.addBlurEffect(style: .systemUltraThinMaterial, cornerRadius: 20, padding: 0)
+        distanceView.isEnabled = true;
         
         buttonsStack.addArrangedSubview(goButton)
+        buttonsStack.addArrangedSubview(distanceView)
         buttonsStack.addArrangedSubview(clearButton)
         view.addSubview(buttonsStack)
         buttonsStack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor).isActive = true
