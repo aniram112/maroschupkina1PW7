@@ -20,6 +20,7 @@ class ViewController: UIViewController {
         view.backgroundColor = .darkGray
         configureUI()
         setupHideKeyboardOnTap()
+        
         // Do any additional setup after loading the view.
     }
     
@@ -161,6 +162,12 @@ class ViewController: UIViewController {
         
         let finishMark = YMKPoint(latitude: coordinates[1].latitude, longitude: coordinates[1].longitude)
         
+        map.mapWindow.map.move(with: YMKCameraPosition(
+            target: startMark,
+            zoom: 6,
+            azimuth: 0,
+            tilt: 0))
+        
         let requestPoints : [YMKRequestPoint] = [
             YMKRequestPoint(point: startMark, type: .waypoint, pointContext: nil),
             YMKRequestPoint(point: finishMark, type: .waypoint, pointContext: nil),
@@ -173,6 +180,7 @@ class ViewController: UIViewController {
                 self.onRoutesError(error!)
             }
         }
+
         
         let drivingRouter = YMKDirections.sharedInstance().createDrivingRouter()
         drivingSession = drivingRouter.requestRoutes(
@@ -185,9 +193,12 @@ class ViewController: UIViewController {
     
     func onRoutesReceived(_ routes: [YMKDrivingRoute]) {
         let mapObjects = map.mapWindow.map.mapObjects
-        for route in routes {
-            mapObjects.addPolyline(with: route.geometry)
-        }
+        // показывает все маршруты, а надо бы один
+        //for route in routes {
+        let routePolyline = mapObjects.addColoredPolyline(with: routes[0].geometry);
+        YMKRouteHelper.updatePolyline(withPolyline: routePolyline, route: routes[0], style: YMKRouteHelper.createDefaultJamStyle())
+        //mapObjects.
+        //}
     }
     
     func onRoutesError(_ error: Error) {
