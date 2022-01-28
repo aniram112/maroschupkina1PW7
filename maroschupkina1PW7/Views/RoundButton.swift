@@ -8,16 +8,16 @@
 import UIKit
 class RoundButtonView: UIButton {
     
-    convenience init(color: UIColor, text: String) {
+    convenience init(color: UIColor, text: String, width: Int, height: Int, cornerRadius: Int) {
         self.init()
         backgroundColor = color
         self.setTitle(text, for: .normal)
-        self.layer.cornerRadius = 20
+        self.layer.cornerRadius = CGFloat(cornerRadius)
         isEnabled = false
         setTitleColor(.gray, for: .disabled)
         translatesAutoresizingMaskIntoConstraints = false
-        widthAnchor.constraint(equalToConstant: UIScreen.main.bounds.height / 10).isActive = true
-        heightAnchor.constraint(equalToConstant: UIScreen.main.bounds.height / 20).isActive = true
+        widthAnchor.constraint(equalToConstant: UIScreen.main.bounds.height / CGFloat(width)).isActive = true
+        heightAnchor.constraint(equalToConstant: UIScreen.main.bounds.height / CGFloat(height)).isActive = true
     }
 }
 

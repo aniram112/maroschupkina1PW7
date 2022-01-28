@@ -14,30 +14,20 @@ class ViewController: UIViewController {
     var coordinates: [CLLocationCoordinate2D] = []
     var drivingSession: YMKDrivingSession?
     var length = 0.0;
+    var azimuth = 0.0
+    public let locationManager = CLLocationManager()
     
     
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .darkGray
+        locationManager.delegate = self
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.startUpdatingHeading()
         configureUI()
         setupHideKeyboardOnTap()
         
-        // Do any additional setup after loading the view.
     }
-    
-    /*private let map: MKMapView = {
-     let mapView = MKMapView()
-     mapView.layer.masksToBounds = true
-     mapView.layer.cornerRadius = 5
-     mapView.clipsToBounds = false
-     mapView.translatesAutoresizingMaskIntoConstraints = false
-     mapView.showsScale = true
-     mapView.showsCompass = true
-     mapView.showsBuildings = true
-     mapView.showsBuildings = true
-     mapView.showsUserLocation = true
-     return mapView
-     }()*/
     
     private let map: YMKMapView = {
         let map = YMKMapView()
@@ -50,6 +40,20 @@ class ViewController: UIViewController {
     private let buttonsStack: UIStackView = {
         let stack = UIStackView()
         stack.axis = .horizontal
+        stack.alignment = .center
+        stack.spacing = 30
+        //stack.backgroundColor = UIColor.systemGray6
+        stack.distribution = .equalCentering
+        stack.layoutMargins = UIEdgeInsets(top: 5, left: 5, bottom: 5, right: 5)
+        stack.isLayoutMarginsRelativeArrangement = true
+        stack.layer.cornerRadius = 10
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+    
+    private let plusMinusStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
         stack.alignment = .center
         stack.spacing = 30
         //stack.backgroundColor = UIColor.systemGray6
@@ -99,20 +103,38 @@ class ViewController: UIViewController {
     }()
     
     let goButton : RoundButtonView = {
-        let goButton = RoundButtonView(color: .gray.withAlphaComponent(0.2), text: "Go")
+        let goButton = RoundButtonView(color: .gray.withAlphaComponent(0.2), text: "Go", width: 10, height: 20, cornerRadius: 20)
         goButton.addTarget(self, action: #selector(goButtonWasPressed), for: .touchDown)
         return goButton
     }()
     
     let clearButton : RoundButtonView = {
-        let clearButton = RoundButtonView(color: .gray.withAlphaComponent(0.2), text: "Clear")
+        let clearButton = RoundButtonView(color: .gray.withAlphaComponent(0.2), text: "Clear", width: 10, height: 20, cornerRadius: 20)
         clearButton.addTarget(self, action: #selector(clearButtonWasPressed), for: .touchDown)
         return clearButton
     }()
     
     let distanceView : RoundButtonView = {
-        let distanceView = RoundButtonView(color: .gray.withAlphaComponent(0.2), text: "0")
+        let distanceView = RoundButtonView(color: .gray.withAlphaComponent(0.2), text: "0", width: 10, height: 20, cornerRadius: 20)
         return distanceView
+    }()
+    
+    let plusButton : RoundButtonView = {
+        let plusButton = RoundButtonView(color: .gray.withAlphaComponent(0.2), text: "+", width: 20, height: 20, cornerRadius:  20 )
+        plusButton.addTarget(self, action: #selector(plusButtonWasPressed), for: .touchDown)
+        return plusButton
+    }()
+    
+    let minusButton : RoundButtonView = {
+        let minusButton = RoundButtonView(color: .gray.withAlphaComponent(0.2), text: "—", width: 20, height: 20, cornerRadius: 20)
+        minusButton.addTarget(self, action: #selector(minusButtonWasPressed), for: .touchDown)
+        return minusButton
+    }()
+    
+    let compassButton : RoundButtonView = {
+        let compassButton = RoundButtonView(color: .gray.withAlphaComponent(0.2), text: "⍋", width: 20, height: 20, cornerRadius: 20)
+        compassButton.addTarget(self, action: #selector(compassButtonWasPressed), for: .touchDown)
+        return compassButton
     }()
     
     @objc func clearButtonWasPressed(_ sender: UIButton) {
@@ -164,7 +186,7 @@ class ViewController: UIViewController {
     }
     private func buildPath(){
         
-        //let startMark = MKPlacemark(coordinate: coordinates[0])
+        
         let startMark = YMKPoint(latitude: coordinates[0].latitude, longitude: coordinates[0].longitude)
         
         let finishMark = YMKPoint(latitude: coordinates[1].latitude, longitude: coordinates[1].longitude)
@@ -198,6 +220,33 @@ class ViewController: UIViewController {
         
         
         distanceView.setTitle(String(Int(length)), for: UIControl.State.normal)
+    }
+    
+    @objc func plusButtonWasPressed() {
+        let zoom = map.mapWindow.map.cameraPosition.zoom + 1
+        let target = map.mapWindow.map.cameraPosition.target
+        map.mapWindow.map.move(
+            with: YMKCameraPosition.init(target: target, zoom: zoom, azimuth: 0, tilt: 0),
+            animationType: YMKAnimation(type: YMKAnimationType.smooth, duration: 1),
+            cameraCallback: nil)
+    }
+    
+    @objc func minusButtonWasPressed() {
+        let zoom = map.mapWindow.map.cameraPosition.zoom - 1
+        let target = map.mapWindow.map.cameraPosition.target
+        map.mapWindow.map.move(
+            with: YMKCameraPosition.init(target: target, zoom: zoom, azimuth: 0, tilt: 0),
+            animationType: YMKAnimation(type: YMKAnimationType.smooth, duration: 1),
+            cameraCallback: nil)
+    }
+    
+    @objc func compassButtonWasPressed() {
+        let zoom = map.mapWindow.map.cameraPosition.zoom
+        let target = map.mapWindow.map.cameraPosition.target
+        map.mapWindow.map.move(
+            with: YMKCameraPosition.init(target: target, zoom: zoom, azimuth: Float(azimuth), tilt: 0),
+            animationType: YMKAnimation(type: YMKAnimationType.smooth, duration: 1),
+            cameraCallback: nil)
     }
     
     func onRoutesReceived(_ routes: [YMKDrivingRoute]) {
@@ -238,19 +287,21 @@ class ViewController: UIViewController {
         }
     }
     
-    private func configureUI() {
-        view.addSubview(map)
-        map.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
-        map.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
-        map.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
-        map.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
+    fileprivate func plusMinusUI() {
+        compassButton.transform = CGAffineTransform(rotationAngle: -CGFloat.pi / 1.2)
+        plusMinusStack.addArrangedSubview(plusButton)
+        plusMinusStack.addArrangedSubview(minusButton)
+        plusMinusStack.addArrangedSubview(compassButton)
         
-        
-        goButton.addBlurEffect(style: .systemUltraThinMaterial, cornerRadius: 20, padding: 0)
-        distanceView.addBlurEffect(style: .systemUltraThinMaterial, cornerRadius: 20, padding: 0)
-        clearButton.addBlurEffect(style: .systemUltraThinMaterial, cornerRadius: 20, padding: 0)
-        distanceView.isEnabled = true;
-        
+        view.addSubview(plusMinusStack)
+        plusMinusStack.spacing = 15
+        plusMinusStack.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor).isActive = true
+        plusMinusStack.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
+        //plusMinusStack.heightAnchor.constraint(equalToConstant: UIScreen.main.bounds.height / 5).isActive = true
+        plusMinusStack.layer.masksToBounds = true
+    }
+    
+    fileprivate func buttonUI() {
         buttonsStack.addArrangedSubview(goButton)
         buttonsStack.addArrangedSubview(distanceView)
         buttonsStack.addArrangedSubview(clearButton)
@@ -259,8 +310,9 @@ class ViewController: UIViewController {
         buttonsStack.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         buttonsStack.heightAnchor.constraint(equalToConstant: UIScreen.main.bounds.height / 10).isActive = true
         buttonsStack.layer.masksToBounds = true
-        
-        let textStack = UIStackView()
+    }
+    
+    fileprivate func textUI(_ textStack: UIStackView) {
         textStack.axis = .vertical
         view.addSubview(textStack)
         textStack.spacing = 10
@@ -273,7 +325,44 @@ class ViewController: UIViewController {
         textStack.addArrangedSubview(finishLocation)
         startLocation.delegate = self
         finishLocation.delegate = self
+    }
+    
+    private func addBlur() {
+        let half = UIScreen.main.bounds.height / 40
+        goButton.addBlurEffect(style: .systemUltraThinMaterial, cornerRadius: 20, padding: 0)
+        distanceView.addBlurEffect(style: .systemUltraThinMaterial, cornerRadius: 20, padding: 0)
+        clearButton.addBlurEffect(style: .systemUltraThinMaterial, cornerRadius: 20, padding: 0)
+        plusButton.addBlurEffect(style: .systemUltraThinMaterial, cornerRadius: half, padding: 0)
+        minusButton.addBlurEffect(style: .systemUltraThinMaterial, cornerRadius: half, padding: 0)
+        compassButton.addBlurEffect(style: .systemUltraThinMaterial, cornerRadius: half, padding: 0)
+    }
+    
+    private func configureUI() {
+        view.addSubview(map)
+        map.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
+        map.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
+        map.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
+        map.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
         
+        
+        addBlur()
+        
+        distanceView.isEnabled = true;
+        plusButton.isEnabled = true;
+        minusButton.isEnabled = true;
+        compassButton.isEnabled = true;
+        
+        buttonUI()
+        
+        plusMinusUI()
+        
+        let textStack = UIStackView()
+        textUI(textStack)
+        
+    }
+    
+    public func updateCompass(heading: Double) {
+        compassButton.transform = CGAffineTransform(rotationAngle: CGFloat(heading) * .pi / 180)
     }
     
     

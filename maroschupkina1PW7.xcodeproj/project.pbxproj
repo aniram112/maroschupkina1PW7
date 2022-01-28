@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 51;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -13,6 +13,7 @@
 		7E125ADD27949E0F000DA37D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7E125ADC27949E0F000DA37D /* Assets.xcassets */; };
 		7E125AE027949E0F000DA37D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 7E125ADE27949E0F000DA37D /* LaunchScreen.storyboard */; };
 		7E125AE92794AC86000DA37D /* RoundButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E125AE82794AC86000DA37D /* RoundButton.swift */; };
+		7E7B07F727A43FE000216745 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E7B07F627A43FE000216745 /* LocationManager.swift */; };
 		FD3F932D0B824E6E1915FA35 /* Pods_maroschupkina1PW7.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6709A04E04BBF69866A7FE1F /* Pods_maroschupkina1PW7.framework */; };
 /* End PBXBuildFile section */
 
@@ -27,6 +28,7 @@
 		7E125ADF27949E0F000DA37D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		7E125AE127949E0F000DA37D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7E125AE82794AC86000DA37D /* RoundButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundButton.swift; sourceTree = "<group>"; };
+		7E7B07F627A43FE000216745 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		B025B5095F29F56EE87CF389 /* Pods-maroschupkina1PW7.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-maroschupkina1PW7.debug.xcconfig"; path = "Target Support Files/Pods-maroschupkina1PW7/Pods-maroschupkina1PW7.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -63,13 +65,14 @@
 		7E125AD227949E0D000DA37D /* maroschupkina1PW7 */ = {
 			isa = PBXGroup;
 			children = (
+				7E7B07F927A4455F00216745 /* Models */,
+				7E7B07F827A4451B00216745 /* Views */,
 				7E125AE72794AAA3000DA37D /* Controllers */,
 				7E125AD327949E0D000DA37D /* AppDelegate.swift */,
 				7E125AD527949E0D000DA37D /* SceneDelegate.swift */,
 				7E125ADC27949E0F000DA37D /* Assets.xcassets */,
 				7E125ADE27949E0F000DA37D /* LaunchScreen.storyboard */,
 				7E125AE127949E0F000DA37D /* Info.plist */,
-				7E125AE82794AC86000DA37D /* RoundButton.swift */,
 			);
 			path = maroschupkina1PW7;
 			sourceTree = "<group>";
@@ -78,8 +81,24 @@
 			isa = PBXGroup;
 			children = (
 				7E125AD727949E0D000DA37D /* ViewController.swift */,
+				7E7B07F627A43FE000216745 /* LocationManager.swift */,
 			);
 			path = Controllers;
+			sourceTree = "<group>";
+		};
+		7E7B07F827A4451B00216745 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7E125AE82794AC86000DA37D /* RoundButton.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		7E7B07F927A4455F00216745 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 		DD5E1F30DB8073CABFA61472 /* Pods */ = {
@@ -88,7 +107,6 @@
 				B025B5095F29F56EE87CF389 /* Pods-maroschupkina1PW7.debug.xcconfig */,
 				79C4A5D08AB147A68ED0D593 /* Pods-maroschupkina1PW7.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -215,6 +233,7 @@
 			files = (
 				7E125AE92794AC86000DA37D /* RoundButton.swift in Sources */,
 				7E125AD827949E0D000DA37D /* ViewController.swift in Sources */,
+				7E7B07F727A43FE000216745 /* LocationManager.swift in Sources */,
 				7E125AD427949E0D000DA37D /* AppDelegate.swift in Sources */,
 				7E125AD627949E0D000DA37D /* SceneDelegate.swift in Sources */,
 			);
