@@ -14,7 +14,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // да, ключ в открытом виде, но я все равно заблокирую его после проверки
         YMKMapKit.setApiKey("db073101-f591-49f1-8671-a63412c88f57")
         return true
     }

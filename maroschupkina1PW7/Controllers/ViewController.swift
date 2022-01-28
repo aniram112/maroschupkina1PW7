@@ -288,7 +288,7 @@ class ViewController: UIViewController {
     }
     
     fileprivate func plusMinusUI() {
-        compassButton.transform = CGAffineTransform(rotationAngle: -CGFloat.pi / 1.2)
+        //compassButton.transform = CGAffineTransform(rotationAngle: -CGFloat.pi / 1.2)
         plusMinusStack.addArrangedSubview(plusButton)
         plusMinusStack.addArrangedSubview(minusButton)
         plusMinusStack.addArrangedSubview(compassButton)
